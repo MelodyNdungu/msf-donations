@@ -2,6 +2,7 @@
   "name": "msf-donations",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "MSF Eastern Africa Donations Portal — React + Vite frontend, Node.js + Express backend",
   "scripts": {
     "install:all": "npm install --prefix server && npm install --prefix client",
