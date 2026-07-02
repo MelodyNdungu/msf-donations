@@ -40,7 +40,7 @@ POST /api/donations
 Content-Type: application/json
 
 {
-  "name": "Jane Wanjiku",
+  "name": "Jane Doe",
   "email": "jane@example.com",
   "amount": 50,
   "paymentMethod": "mpesa",

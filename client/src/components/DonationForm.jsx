@@ -330,7 +330,7 @@ export default function DonationForm() {
           value={form.name}
           onChange={handleChange}
           disabled={isLoading}
-          placeholder="Jane Wanjiku"
+          placeholder="Jane Doe"
           aria-required="true"
           aria-invalid={!!errors.name}
           aria-describedby={errors.name ? 'name-error' : undefined}

@@ -1,5 +1,6 @@
 import DonationForm from './components/DonationForm.jsx';
 import TrustBanner from './components/TrustBanner.jsx';
+import { Link } from 'react-router-dom';
 
 export default function App() {
   return (
@@ -74,6 +75,15 @@ export default function App() {
           <span className="text-gray-500">
             This portal is a demonstration — no real payments are processed.
           </span>
+        </p>
+        <p className="mt-2">
+          <Link to="/docs" className="text-rose-400 hover:text-rose-600 transition-colors font-semibold">
+            API Documentation
+          </Link>
+          {' · '}
+          <Link to="/wireframe" className="text-rose-400 hover:text-rose-600 transition-colors font-semibold">
+            Wireframe
+          </Link>
         </p>
       </footer>
     </div>
