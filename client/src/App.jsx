@@ -48,6 +48,7 @@ export default function App() {
 
           {/* ── Right column: campaign image + trust banner ── */}
           <aside className="mt-8 lg:mt-6 lg:sticky lg:top-6 flex flex-col gap-4">
+            <TrustBanner />
             <div className="relative rounded-2xl overflow-hidden shadow-md">
               <img
                 src="/msf-campaign.webp"
@@ -64,7 +65,6 @@ export default function App() {
                 </p>
               </div>
             </div>
-            <TrustBanner />
           </aside>
         </div>
       </main>

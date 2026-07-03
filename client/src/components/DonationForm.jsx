@@ -5,7 +5,7 @@ import SuccessMessage from './SuccessMessage.jsx';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MPESA_RE = /^(07\d{8}|2547\d{8})$/;
-const AMOUNT_PRESETS = [50, 100, 250];
+const AMOUNT_PRESETS = [100, 200, 500, 1000];
 
 function validateForm(form, anonymous) {
   const errors = {};
@@ -110,6 +110,13 @@ export default function DonationForm() {
   const handleAmountPreset = (preset) => {
     setForm((prev) => ({ ...prev, amount: String(preset) }));
     clearFieldError('amount');
+  };
+
+  // Strip leading + so +2547XXXXXXXX is accepted as 2547XXXXXXXX
+  const handleMpesaChange = (e) => {
+    const val = e.target.value.replace(/^\+/, '');
+    setForm((prev) => ({ ...prev, mpesaNumber: val }));
+    clearFieldError('mpesaNumber');
   };
 
   // ── Submit ───────────────────────────────────────────────────────────────
@@ -513,7 +520,7 @@ export default function DonationForm() {
             type="tel"
             autoComplete="tel"
             value={form.mpesaNumber}
-            onChange={handleChange}
+            onChange={handleMpesaChange}
             disabled={isLoading}
             placeholder="07XXXXXXXX or 2547XXXXXXXX"
             aria-required="true"
