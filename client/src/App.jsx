@@ -81,6 +81,10 @@ export default function App() {
             API Documentation
           </Link>
           {' · '}
+          <Link to="/process" className="text-rose-400 hover:text-rose-600 transition-colors font-semibold">
+            Process Map
+          </Link>
+          {' · '}
           <Link to="/wireframe" className="text-rose-400 hover:text-rose-600 transition-colors font-semibold">
             Wireframe
           </Link>

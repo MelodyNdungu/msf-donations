@@ -1,0 +1,326 @@
+openapi: 3.0.3
+
+info:
+  title: MSF Eastern Africa — Donations API
+  description: |
+    Simulated donations portal API for MSF Eastern Africa (Médecins Sans Frontières).
+    No real payments are processed. All card data is discarded after validation.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3001
+    description: Local development
+  - url: https://msf-donations.vercel.app
+    description: Production (Vercel)
+
+paths:
+
+  /api/donations:
+    post:
+      summary: Submit a donation
+      description: |
+        Validates the request body with Zod, simulates payment processing
+        (85% success / 15% failure with a 1–2 s delay), stores a transaction
+        record in memory (no card data ever persisted), and returns the result.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DonationRequest'
+            examples:
+              mpesa_one_time:
+                summary: M-Pesa — one-time donation
+                value:
+                  name: Jane Wanjiku
+                  email: jane@example.com
+                  amount: 500
+                  paymentMethod: mpesa
+                  mpesaNumber: "0712345678"
+                  donationType: one-time
+              card_monthly:
+                summary: Card — monthly donation
+                value:
+                  name: John Kamau
+                  email: john@example.com
+                  amount: 1000
+                  paymentMethod: card
+                  donationType: monthly
+                  cardDetails:
+                    cardNumber: "4111111111111111"
+                    expiry: "12/26"
+                    cvv: "123"
+              anonymous:
+                summary: Anonymous M-Pesa donation
+                value:
+                  name: Anonymous
+                  email: anon@example.com
+                  amount: 200
+                  paymentMethod: mpesa
+                  mpesaNumber: "2547012345678"
+                  donationType: one-time
+      responses:
+        '201':
+          description: Donation confirmed — payment simulation succeeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DonationResponse'
+              example:
+                success: true
+                transactionId: MSF-1751500000000-A3B4C5D6
+                amount: 500
+                paymentMethod: mpesa
+                timestamp: "2026-07-03T08:30:00.000Z"
+                status: confirmed
+        '400':
+          description: Validation failed — one or more fields are invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+              example:
+                success: false
+                errors:
+                  - field: email
+                    message: Must be a valid email address
+                  - field: amount
+                    message: Minimum donation is KES 10
+        '402':
+          description: Payment failed (simulated — 15% probability)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentErrorResponse'
+              example:
+                success: false
+                message: Payment could not be processed
+                reason: Insufficient funds
+        '500':
+          description: Unexpected server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/donations/{id}:
+    get:
+      summary: Get donation status
+      description: |
+        Returns a safe subset of the stored transaction record.
+        PII (email) is never included in this response.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The transactionId returned from POST /api/donations
+          schema:
+            type: string
+            maxLength: 60
+            example: MSF-1751500000000-A3B4C5D6
+      responses:
+        '200':
+          description: Donation found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DonationStatusResponse'
+        '400':
+          description: Invalid transaction ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Donation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: Donation not found
+
+  /health:
+    get:
+      summary: Health check
+      description: Confirms the API server is running.
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-07-03T08:30:00.000Z"
+
+components:
+  schemas:
+
+    CardDetails:
+      type: object
+      required: [cardNumber, expiry, cvv]
+      description: Required when paymentMethod is "card". Never stored on the server.
+      properties:
+        cardNumber:
+          type: string
+          pattern: '^\d{13,19}$'
+          description: 13–19 digits, no spaces
+          example: "4111111111111111"
+        expiry:
+          type: string
+          pattern: '^(0[1-9]|1[0-2])\/\d{2}$'
+          description: MM/YY format
+          example: "12/26"
+        cvv:
+          type: string
+          pattern: '^\d{3,4}$'
+          description: 3 or 4 digits
+          example: "123"
+
+    DonationRequest:
+      type: object
+      required: [name, email, amount, paymentMethod]
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+          description: Donor full name. Pass "Anonymous" for anonymous donations.
+          example: Jane Wanjiku
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          example: jane@example.com
+        amount:
+          type: number
+          minimum: 10
+          maximum: 1000000
+          description: Donation amount in KES
+          example: 500
+        paymentMethod:
+          type: string
+          enum: [mpesa, card]
+          example: mpesa
+        donationType:
+          type: string
+          enum: [one-time, monthly]
+          default: one-time
+          example: one-time
+        mpesaNumber:
+          type: string
+          pattern: '^(07\d{8}|2547\d{8})$'
+          description: |
+            Required when paymentMethod is "mpesa".
+            Accepts leading + (e.g. +2547…) — stripped before validation.
+            Safaricom Kenya format: 07XXXXXXXX or 2547XXXXXXXX.
+          example: "0712345678"
+        cardDetails:
+          $ref: '#/components/schemas/CardDetails'
+
+    DonationResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        transactionId:
+          type: string
+          description: Format — MSF-{unix_ms}-{8-char-hex}
+          example: MSF-1751500000000-A3B4C5D6
+        amount:
+          type: number
+          description: Confirmed donation amount in KES
+          example: 500
+        paymentMethod:
+          type: string
+          enum: [mpesa, card]
+          example: mpesa
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-07-03T08:30:00.000Z"
+        status:
+          type: string
+          example: confirmed
+
+    DonationStatusResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        donation:
+          type: object
+          properties:
+            transactionId:
+              type: string
+              example: MSF-1751500000000-A3B4C5D6
+            amount:
+              type: number
+              example: 500
+            paymentMethod:
+              type: string
+              example: mpesa
+            status:
+              type: string
+              example: confirmed
+            timestamp:
+              type: string
+              format: date-time
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        errors:
+          type: array
+          items:
+            type: object
+            required: [field, message]
+            properties:
+              field:
+                type: string
+                description: Dot-notation field path (e.g. cardDetails.cvv)
+                example: email
+              message:
+                type: string
+                example: Must be a valid email address
+
+    PaymentErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Payment could not be processed
+        reason:
+          type: string
+          enum:
+            - Insufficient funds
+            - Transaction declined by issuing bank
+            - Network timeout with payment provider
+            - Card verification failed
+            - Daily transaction limit reached
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: An unexpected server error occurred. Please try again.

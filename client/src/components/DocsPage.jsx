@@ -307,8 +307,12 @@ Content-Type: application/json
           </span>
         </p>
         <p className="mt-2">
+          <Link to="/process" className="text-rose-400 hover:text-rose-600 transition-colors font-semibold">
+            Process Map
+          </Link>
+          {' · '}
           <Link to="/wireframe" className="text-rose-400 hover:text-rose-600 transition-colors font-semibold">
-            View wireframe
+            Wireframe
           </Link>
         </p>
       </footer>
